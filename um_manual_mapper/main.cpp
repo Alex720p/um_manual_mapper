@@ -11,6 +11,7 @@
 * Sources:
 * https://www.joachim-bauch.de/tutorials/loading-a-dll-from-memory/
 * https://0xrick.github.io/win-internals
+* https://research32.blogspot.com/2015/01/base-relocation-table.html
 */
 
 
@@ -56,7 +57,7 @@ void main() {
 	for (std::size_t i = 0; i < nt_header->FileHeader.NumberOfSections; i++) {
 		std::uintptr_t dest = 0; //address where we'll copy the section content
 		std::size_t size = section_header->SizeOfRawData; //used for count in memcpy
-		if (section_header->SizeOfRawData == 0) {
+		if (section_header->SizeOfRawData == 0) { //TODO: to be checked
 			if (section_header->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA) {
 				size = nt_header->OptionalHeader.SizeOfInitializedData;
 				dest = memory.virtual_alloc_ex(base + section_header->VirtualAddress, size, MEM_COMMIT, PAGE_READWRITE);
@@ -78,7 +79,26 @@ void main() {
 		section_header++; //go to next section_header
 	}
 
-	//resolving imports
+	//base relocation
+	IMAGE_DATA_DIRECTORY base_reloc_dir = nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
+	int image_delta = base - nt_header->OptionalHeader.ImageBase; //int since it could be nagative
+	IMAGE_BASE_RELOCATION* base_reloc = reinterpret_cast<IMAGE_BASE_RELOCATION*>(base_reloc_dir.VirtualAddress);
+
+	//TODO: rewrite this part to not rely on ReadProcessMemory
+	for (std::size_t i = 0; i <= base_reloc_dir.Size; i += base_reloc->SizeOfBlock) { //going over the reloc blocks
+		IMAGE_BASE_RELOCATION* base_reloc = reinterpret_cast<IMAGE_BASE_RELOCATION*>(base_reloc_dir.VirtualAddress += i);
+		std::size_t num_of_entries = (base_reloc->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / 2; //num of entries (of 2 bytes) in the reloc block
+		for (std::size_t i = sizeof(IMAGE_BASE_RELOCATION); i <= base_reloc->SizeOfBlock; i += 2) { //going over all the entries
+			if ((*(reinterpret_cast<BYTE*>(base_reloc)+ i + 1) & IMAGE_REL_BASED_HIGHLOW << 4) == IMAGE_REL_BASED_HIGHLOW) { //redo this part, false
+				//fix
+			}
+		}
+
+	}
+
+	//copy the relocated stuff to target memory, optimize the stuff before since we're copying twice the .reloc section
+
+
 	//.reloc section
 
 
