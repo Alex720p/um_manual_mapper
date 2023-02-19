@@ -89,7 +89,9 @@ void main() {
 		IMAGE_BASE_RELOCATION* base_reloc = reinterpret_cast<IMAGE_BASE_RELOCATION*>(base_reloc_dir.VirtualAddress += i);
 		std::size_t num_of_entries = (base_reloc->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / 2; //num of entries (of 2 bytes) in the reloc block
 		for (std::size_t i = sizeof(IMAGE_BASE_RELOCATION); i <= base_reloc->SizeOfBlock; i += 2) { //going over all the entries
-			if ((*(reinterpret_cast<BYTE*>(base_reloc)+ i + 1) & IMAGE_REL_BASED_HIGHLOW << 4) == IMAGE_REL_BASED_HIGHLOW) { //redo this part, false
+			if ((*(reinterpret_cast<BYTE*>(base_reloc)+ i + 1) & (IMAGE_REL_BASED_HIGHLOW << 4)) == (IMAGE_REL_BASED_HIGHLOW << 4)) { //prob a way cleaner way to check but it *should* work
+				//cast to a word and then check bytes (will not be reversed) + read the endian wikipedia page https://en.wikipedia.org/wiki/Endianness
+																																	  
 				//fix
 			}
 		}
